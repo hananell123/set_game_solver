@@ -1,6 +1,6 @@
 import numpy as np
-import cv2 as cv
-
+import cv2
+from numpy import random as rnd
 
 
 elipseSize,elipseType = 58,1
@@ -35,20 +35,48 @@ def find_shape(shapeSize):
 
 
 
+def make_constrast(img):
+    kernel = np.ones((5,5), np.float32) / 24
+    img = cv2.filter2D(img, -1, kernel)
 
+    # cv2.imshow('frame', img)
+    # cv2.waitKey(0)
 
-
+    return img
 def start(name):
-  cap = cv.VideoCapture(0)
+  cap = cv2.VideoCapture(0)
+  size = 12
+
 
   while (True):
+      fillMap = {
+          0: "full",
+         1: "stripes",
+          2: "empty",
+          -1:"ERROR"
+      }
+
       ret, img = cap.read()
-      imgray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-      thresh = cv.threshold(imgray, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)[1]
-      contours, hierarchy = cv.findContours(thresh, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+      print(len(img))
+      # cv2.imshow('frame', img)
+      # cv2.waitKey(0)
+
+      # img = make_constrast(img)
+
+
+      alpha = 1.4
+      beta = 20
+      # img = cv2.addWeighted(img,alpha,np.zeros(img.shape,img.dtype),0,beta)
+
+      imgray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+      imgray = cv2.addWeighted(imgray, alpha, np.zeros(imgray.shape, imgray.dtype), 0, beta)
+      thresh = cv2.threshold(imgray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+      contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
       for cnt in (contours):
-          approx = cv.approxPolyDP(cnt,0.01*cv.arcLength(cnt,True),True)
+          fill = -1
+
+          approx = cv2.approxPolyDP(cnt, 0.01 * cv2.arcLength(cnt, True), True)
 
           p1 = approx[0][0]
           p2 = approx[1][0]
@@ -56,8 +84,8 @@ def start(name):
           p4 = approx[3][0]
 
 
-          cv.drawContours(img,approx,-1,(0,255,0),3)
-          cv.circle(img,[1,120],3,(0,0,255),cv.FILLED)
+          # cv2.drawContours(img, approx, -1, (0, 255, 0), 3)
+          # cv2.circle(img, [1, 120], 3, (0, 0, 255), cv2.FILLED)
           # cv.imshow('regular', img)
           # cv.waitKey(0)
 
@@ -66,18 +94,18 @@ def start(name):
           cardPoints = np.float32([[0, 0],[height, 0],[height, width],[0, width] ])
           if np.linalg.norm(p1-p2)>np.linalg.norm(p2 - p3):
               oldPoints = np.float32([p2,p1,p4,p3])
-              matrix = cv.getPerspectiveTransform(oldPoints,cardPoints)
-              imgOut = cv.warpPerspective(img,matrix,(width,height))
+              matrix = cv2.getPerspectiveTransform(oldPoints, cardPoints)
+              imgOut = cv2.warpPerspective(img, matrix, (width, height))
 
           else:
               oldPoints = np.float32([p1,p4,p3,p2])
-              matrix = cv.getPerspectiveTransform(oldPoints,cardPoints)
-              imgOut = cv.warpPerspective(img,matrix,(width,height))
-          edges = cv.Canny(imgOut, 80, 80)
+              matrix = cv2.getPerspectiveTransform(oldPoints, cardPoints)
+              imgOut = cv2.warpPerspective(img, matrix, (width, height))
+          edges = cv2.Canny(imgOut, 80, 80)
 
 
 
-          imgray = cv.cvtColor(imgOut, cv.COLOR_BGR2GRAY)
+          imgray = cv2.cvtColor(imgOut, cv2.COLOR_BGR2GRAY)
 
           x = int((width * 2) / 4)
           y = int((height * 2) / 4)
@@ -86,18 +114,18 @@ def start(name):
 
 
           if type == 1:
-              print("Count:",num,', shape: elipse, color:',color)
+              print("Count:",num,', shape: elipse, color:',color,', fill is:',fillMap[fill])
           elif type ==2:
-              print("Count:", num,', shape: wave, color:',color)
+              print("Count:", num,', shape: wave, color:',color,', fill is:',fillMap[fill])
           else:
-              print("Count:", num, ', shape: rhom, color:',color)
-          print('fill of one', fill / num)
-          cv.imshow('COLOR card', imgOut)
-          cv.waitKey(0)
+              print("Count:", num, ', shape: rhom, color:',color,', fill is:',fillMap[fill])
+
+          cv2.imshow('COLOR card', imgOut)
+          cv2.waitKey(0)
 
 
-      cv.imshow('frame', img)
-      if cv.waitKey(1) & 0xFF == ord('q'):
+      cv2.imshow('frame', img)
+      if cv2.waitKey(1) & 0xFF == ord('q'):
           break
 
 
@@ -111,36 +139,132 @@ def find_color(rgbAvg):
     if greenDist < min:
         min = greenDist
         color = 'green'
-    if redDist < min:
+    if redDist < min or rgbAvg[2]>125:
         min = redDist
         color = 'red'
-    if purpleDist < min :#or rgbAvg[1]<110
+    if purpleDist < min and rgbAvg[2]<150:#or rgbAvg[1]<110
         min = purpleDist
         color = 'purple'
 
+    print('avrg',rgbAvg)
+    print('green:',greenDist)
+    print('red',redDist)
+    print('purple',purpleDist)
+
     return color
+def fill(img,countres,thresh):
+    max_x, min_x = float('-inf'), float('inf')
+    max_y, min_y = float('-inf'), float('inf')
+    cont = []
+    for c in countres:
+        if c.shape[0] > 50:
+            cont = c
+            # tmax_x, tmin_x = max([i[0][0] for i in cont]), min([i[0][0] for i in cont])
+            # tmax_y, tmin_y = max([i[0][1] for i in cont]), min([i[0][1] for i in cont])
+            max_x, min_x = max([i[0][0] for i in cont]), min([i[0][0] for i in cont])
+            max_y, min_y = max([i[0][1] for i in cont]), min([i[0][1] for i in cont])
+            img = img[min_y:max_y, min_x:max_x]
+            # canny = cv2.Canny(img, 60, 60)
+            # newImg = cv2.resize(canny, (30, 95))
+            break
 
-def find_fill(thresh,original):
-    canny = cv.Canny(original, 80, 80)
+
+
+    thresh = thresh[min_y:max_y, min_x:max_x]
+
+
+    whitePixelCounter = 0
+    imgSize = thresh.shape[0]*thresh.shape[1]
+    for i in range(thresh.shape[0]):
+        for j in range(thresh.shape[1]):
+            if thresh[i][j] == 255:
+                whitePixelCounter+=1
+
+    # 0 = full
+    # 1 = stripes
+    # 2 = empty
+    if whitePixelCounter/imgSize >0.5:
+        return 0
+
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    canny = cv2.Canny(gray, 5, 20)
+
+    lines = cv2.HoughLinesP(canny, 2, np.pi / 180, 20, maxLineGap=4)
+    # 2 less then 17
     counter = 0
-    blackCounter=0
-    for row in range(thresh.shape[0]):
-        for col in range(thresh.shape[1]):
-            if thresh[row][col]==255:
-                blackCounter+=1
-                if canny[row][col]==0:
-                    counter+= 1
+    for line in lines:
+        x1, y1, x2, y2 = line[0]
+        distance = np.sqrt(((x2 - x1) ** 2)) + ((y2 - y1) ** 2)
+        if distance > 100:
+            counter += 1
 
-    return (blackCounter - counter)/blackCounter
+
+    if counter>17:
+        return 1
+    return 2
+
+
+
+
+
+def find_fill(thresh,img,countres):
+    max_x, min_x = float('-inf'), float('inf')
+    max_y, min_y = float('-inf'), float('inf')
+    for c in countres:
+        if c.shape[0] > 50:
+            cont = c
+            # tmax_x, tmin_x = max([i[0][0] for i in cont]), min([i[0][0] for i in cont])
+            # tmax_y, tmin_y = max([i[0][1] for i in cont]), min([i[0][1] for i in cont])
+            max_x, min_x = max([i[0][0] for i in cont]), min([i[0][0] for i in cont])
+            max_y, min_y = max([i[0][1] for i in cont]), min([i[0][1] for i in cont])
+            img = img[min_y:max_y, min_x:max_x]
+            # canny = cv2.Canny(img, 60, 60)
+            # newImg = cv2.resize(canny, (30, 95))
+            break
+
+    thresh = thresh[min_y:max_y, min_x:max_x]
+
+    whitePixelCounter = 0
+    imgSize = thresh.shape[0] * thresh.shape[1]
+    for i in range(thresh.shape[0]):
+        for j in range(thresh.shape[1]):
+            if thresh[i][j] == 255:
+                whitePixelCounter += 1
+
+    # 0 = full
+    # 1 = stripes
+    # 2 = empty
+    if whitePixelCounter / imgSize > 0.5:
+        return 0
+
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    canny = cv2.Canny(gray, 5, 20)
+
+    lines = cv2.HoughLinesP(canny, 2, np.pi / 180, 20, maxLineGap=4)
+    # 2 less then 17
+    counter = 0
+    for line in lines:
+        x1, y1, x2, y2 = line[0]
+        distance = np.sqrt(((x2 - x1) ** 2)) + ((y2 - y1) ** 2)
+        if distance > 100:
+            counter += 1
+
+    if counter > 17:
+        return 1
+    return 2
+
 
 
 
 
 def find_number_of_shapes(imgray,original,center = None,):
 
-    # cv.THRESH_BINARY + cv.THRESH_OTSU)[1]
-    thresh = cv.threshold(imgray, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)[1]
-    fill = find_fill(thresh,original)
+
+
+    thresh = cv2.threshold(imgray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+
 
     tempImg = np.zeros(thresh.shape)
     tempImg[thresh > 150] = 0
@@ -158,8 +282,8 @@ def find_number_of_shapes(imgray,original,center = None,):
     rgb = np.divide(rgb,counter)
     color = find_color(rgbAvg=rgb)
 
-    contours, hierarchy = cv.findContours(thresh, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-
+    contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    fill = find_fill(thresh, original,contours)
     # approx = cv.approxPolyDP(contours[0], 0.01 * cv.arcLength(contours[0], True), True)
     edges = 0
     maxSize = 0
@@ -171,13 +295,15 @@ def find_number_of_shapes(imgray,original,center = None,):
 
     type = find_shape(maxSize)
     if center!= None:
-        cv.putText(imgray, str(edges), center, cv.FONT_HERSHEY_COMPLEX, 0.5, (0, 0, 0))
+        cv2.putText(imgray, str(edges), center, cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 0, 0))
 
 
-    return edges,type,color,fill/edges
+    return edges,type,color,fill
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
+
+
 
     start('PyCharm')
 
