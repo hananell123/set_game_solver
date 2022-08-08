@@ -146,10 +146,10 @@ def find_color(rgbAvg):
         min = purpleDist
         color = 'purple'
 
-    print('avrg',rgbAvg)
-    print('green:',greenDist)
-    print('red',redDist)
-    print('purple',purpleDist)
+    # print('avrg',rgbAvg)
+    # print('green:',greenDist)
+    # print('red',redDist)
+    # print('purple',purpleDist)
 
     return color
 def fill(img,countres,thresh):

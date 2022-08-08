@@ -6,14 +6,23 @@
 class Card:
 
 
-    def __init__(self):
-        pass
+    def __init__(self,shape,shade,color,number,countres):
+        self.shape =shape
+        self.shade =shade
+        self.color =color
+        self.number =number
+        self.countres = countres
 
-    def set_shape(self,shape):
-        self.shape = shape
-    def set_fill(self,fill):
-        self.fill = fill
-    def set_color(self,color):
-        self.color = color
-    def set_number(self,number):
-        self.number = number
+
+
+    def get_color(self):
+        return self.color
+
+    def get_shade(self):
+        return self.shade
+
+    def get_shape(self):
+        return self.shape
+
+    def get_number(self):
+        return self.number
