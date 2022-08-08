@@ -1,7 +1,8 @@
 import numpy as np
 import cv2
 from numpy import random as rnd
-
+from card import Card
+from SetFinder import find_sets
 
 elipseSize,elipseType = 58,1
 waveSize,waveType = 87,2
@@ -11,7 +12,7 @@ green = np.array([99,144,50])
 red = np.array([8,24,194])
 purple = np.array([117,74,72])
 
-
+colors = [(255,0,0),(0,255,0),(0,0,255),(100,0,0),(0,0,100),(0,100,0),(204,0,102),(204,204,0),(255,0,255)]
 
 
 
@@ -28,8 +29,8 @@ def find_shape(shapeSize):
     if minDist == waveDist:
         return 2
     elif minDist == elipseDist:
-        return 1
-    return 3
+        return 0
+    return 1
 
 
 
@@ -44,24 +45,17 @@ def make_constrast(img):
 
     return img
 def start(name):
+  print("START")
   cap = cv2.VideoCapture(0)
   size = 12
+  allCards = []
 
 
   while (True):
-      fillMap = {
-          0: "full",
-         1: "stripes",
-          2: "empty",
-          -1:"ERROR"
-      }
 
       ret, img = cap.read()
-      print(len(img))
-      # cv2.imshow('frame', img)
-      # cv2.waitKey(0)
 
-      # img = make_constrast(img)
+
 
 
       alpha = 1.4
@@ -72,7 +66,7 @@ def start(name):
       imgray = cv2.addWeighted(imgray, alpha, np.zeros(imgray.shape, imgray.dtype), 0, beta)
       thresh = cv2.threshold(imgray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
       contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
+      cleanImg = img.copy()
       for cnt in (contours):
           fill = -1
 
@@ -82,12 +76,6 @@ def start(name):
           p2 = approx[1][0]
           p3 = approx[2][0]
           p4 = approx[3][0]
-
-
-          # cv2.drawContours(img, approx, -1, (0, 255, 0), 3)
-          # cv2.circle(img, [1, 120], 3, (0, 0, 255), cv2.FILLED)
-          # cv.imshow('regular', img)
-          # cv.waitKey(0)
 
 
           width,height = 130,130
@@ -110,20 +98,39 @@ def start(name):
           x = int((width * 2) / 4)
           y = int((height * 2) / 4)
           center = (x, y)
-          num,type,color,fill = find_number_of_shapes(imgray,imgOut,center)
+          number,shape,color,shade,cont = find_number_of_shapes(imgray,imgOut,center)
+          allCards.append(Card(shape,shade,color,number,cnt))
+          cv2.drawContours(img,cnt, -1, (255, 178,102),5)
+          cv2.imshow("ads",img)
+          cv2.waitKey(100)
+
+          #
+          # if shape == 1:
+          #     print("Count:",number,', shape: elipse, color:',color,', fill is:',fillMap[shade])
+          # elif shape ==2:
+          #     print("Count:", number,', shape: wave, color:',color,', fill is:',fillMap[shade])
+          # else:
+          #     print("Count:", number, ', shape: rhom, color:',color,', fill is:',fillMap[shade])
 
 
-          if type == 1:
-              print("Count:",num,', shape: elipse, color:',color,', fill is:',fillMap[fill])
-          elif type ==2:
-              print("Count:", num,', shape: wave, color:',color,', fill is:',fillMap[fill])
-          else:
-              print("Count:", num, ', shape: rhom, color:',color,', fill is:',fillMap[fill])
-
-          cv2.imshow('COLOR card', imgOut)
-          cv2.waitKey(0)
-
-
+      numOfCards = len(allCards)
+      index = 0
+      tempIMG = []
+      cv2.destroyAllWindows()
+      for i in range(numOfCards):
+        for j in range(i+1,numOfCards):
+            for t in range(j+1,numOfCards):
+                card1,card2,card3 = allCards[i],allCards[j],allCards[t]
+                if find_sets(card1,card2,card3):
+                    tempIMG = cleanImg.copy()
+                    cv2.drawContours(tempIMG, (card1.get_countres(),card2.get_countres(),card3.get_countres()), -1,(0,255,0), 4)
+                    cv2.imshow('frame', tempIMG)
+                    cv2.waitKey(2000)
+                    # cv2.line(img, card1.get_center(), card2.get_center(),colors[index], 2)
+                    # cv2.line(img, card2.get_center(), card3.get_center(), colors[index], 2)
+                    index += 1
+                    index = index % len(colors)
+      break
       cv2.imshow('frame', img)
       if cv2.waitKey(1) & 0xFF == ord('q'):
           break
@@ -131,20 +138,20 @@ def start(name):
 
 def find_color(rgbAvg):
     min = float('inf')
-    color = ''
+    color = 0
     greenDist = np.linalg.norm(rgbAvg - green)
     redDist = np.linalg.norm(rgbAvg - red)
     purpleDist = np.linalg.norm(rgbAvg - purple)
 
     if greenDist < min:
         min = greenDist
-        color = 'green'
+        color = 0
     if redDist < min or rgbAvg[2]>125:
         min = redDist
-        color = 'red'
+        color = 1
     if purpleDist < min and rgbAvg[2]<150:#or rgbAvg[1]<110
         min = purpleDist
-        color = 'purple'
+        color = 2
 
     # print('avrg',rgbAvg)
     # print('green:',greenDist)
@@ -293,16 +300,13 @@ def find_number_of_shapes(imgray,original,center = None,):
             edges+=1
 
 
-    type = find_shape(maxSize)
-    if center!= None:
-        cv2.putText(imgray, str(edges), center, cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 0, 0))
+    shape = find_shape(maxSize)
 
 
-    return edges,type,color,fill
+    return edges,shape,color,fill,contours
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-
 
 
     start('PyCharm')
