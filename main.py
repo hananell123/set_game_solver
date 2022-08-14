@@ -3,15 +3,18 @@ import cv2
 from numpy import random as rnd
 from card import Card
 from SetFinder import find_sets
-
+from threading import *
+import time
 elipseSize,elipseType = 58,1
 waveSize,waveType = 87,2
 rhombusSize ,rhombusType= 118,3
-
+originalImage = []
+cap = []
+interupt = False
 green = np.array([99,144,50])
 red = np.array([8,24,194])
 purple = np.array([117,74,72])
-
+name = 'hananel'
 colors = [(255,0,0),(0,255,0),(0,0,255),(100,0,0),(0,0,100),(0,100,0),(204,0,102),(204,204,0),(255,0,255)]
 
 
@@ -45,15 +48,23 @@ def make_constrast(img):
 
     return img
 def start(name):
+  global interupt
+
   print("START")
+  global cap
   cap = cv2.VideoCapture(0)
   size = 12
-  allCards = []
+
 
 
   while (True):
-
+      interupt = False
+      allCards = []
       ret, img = cap.read()
+
+      global originalImage
+      originalImage = img.copy()
+      originalImage = cv2.cvtColor(originalImage,cv2.COLOR_BGR2GRAY)
 
 
 
@@ -99,43 +110,102 @@ def start(name):
           y = int((height * 2) / 4)
           center = (x, y)
           number,shape,color,shade,cont = find_number_of_shapes(imgray,imgOut,center)
-          allCards.append(Card(shape,shade,color,number,cnt))
-          cv2.drawContours(img,cnt, -1, (255, 178,102),5)
-          cv2.imshow("ads",img)
-          cv2.waitKey(100)
+          newCard = Card(shape,shade,color,number,cnt)
+          allCards.append(newCard)
 
-          #
-          # if shape == 1:
-          #     print("Count:",number,', shape: elipse, color:',color,', fill is:',fillMap[shade])
-          # elif shape ==2:
-          #     print("Count:", number,', shape: wave, color:',color,', fill is:',fillMap[shade])
-          # else:
-          #     print("Count:", number, ', shape: rhom, color:',color,', fill is:',fillMap[shade])
+
 
 
       numOfCards = len(allCards)
       index = 0
       tempIMG = []
       cv2.destroyAllWindows()
-      for i in range(numOfCards):
-        for j in range(i+1,numOfCards):
-            for t in range(j+1,numOfCards):
-                card1,card2,card3 = allCards[i],allCards[j],allCards[t]
-                if find_sets(card1,card2,card3):
-                    tempIMG = cleanImg.copy()
-                    cv2.drawContours(tempIMG, (card1.get_countres(),card2.get_countres(),card3.get_countres()), -1,(0,255,0), 4)
+      T = Thread(target=thread_check)
+      T.start()
+      while interupt == False:
+          show_set(numOfCards,cleanImg,allCards,cap)
+          time.sleep(0.2)
+      cv2.destroyAllWindows()
+      after_iterupt()
+      # T = Thread(target=thread_check)
+      # T.start()
+      # while interupt==True:
+      #     time.sleep(0.5)
+
+      # break
+      # cv2.imshow('frame', img)
+      # if cv2.waitKey(1) & 0xFF == ord('q'):
+      #     break
+
+def after_iterupt():
+    global cap
+    global interupt
+    _, im = cap.read()
+    im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+    time.sleep(0.5)
+    while True:
+        cv2.imshow("dsad",im)
+        _, im2 = cap.read()
+        im2 = cv2.cvtColor(im2, cv2.COLOR_BGR2GRAY)
+        # cv2.imshow("original",originalImage)
+        # cv2.waitKey(0)
+        diff_frame = cv2.absdiff(src1=im, src2=im2)
+        im = im2
+
+        # 4. Dilute the image a bit to make differences more seeable; more suitable for contour detection
+        kernel = np.ones((5, 5))
+        diff_frame = cv2.dilate(diff_frame, kernel, 1)
+
+        # 5. Only take different areas that are different enough (>20 / 255)
+        thresh_frame = cv2.threshold(src=diff_frame, thresh=20, maxval=255, type=cv2.THRESH_BINARY)[1]
+        contours, _ = cv2.findContours(image=thresh_frame, mode=cv2.RETR_EXTERNAL, method=cv2.CHAIN_APPROX_SIMPLE)
+        size = len(contours)
+        print("size: ",size)
+
+def thread_check():
+    global cap
+    global originalImage
+    while True:
+        ret, im = cap.read()
+        im =cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
+        # cv2.imshow("original",originalImage)
+        # cv2.waitKey(0)
+
+        diff_frame = cv2.absdiff(src1=originalImage, src2=im)
+        originalImage = im
+
+        # 4. Dilute the image a bit to make differences more seeable; more suitable for contour detection
+        kernel = np.ones((5, 5))
+        diff_frame = cv2.dilate(diff_frame, kernel, 1)
+
+        # 5. Only take different areas that are different enough (>20 / 255)
+        thresh_frame = cv2.threshold(src=diff_frame, thresh=20, maxval=255, type=cv2.THRESH_BINARY)[1]
+        contours, _ = cv2.findContours(image=thresh_frame, mode=cv2.RETR_EXTERNAL, method=cv2.CHAIN_APPROX_SIMPLE)
+        size = len(contours)
+        if size > 70:
+            print("*****************sleep")
+            global interupt
+            interupt = True
+
+            return
+        time.sleep(0.3)
+
+
+def show_set(numOfCards,cleanImg,allCards,cap):
+    for i in range(numOfCards):
+        for j in range(i + 1, numOfCards):
+            for t in range(j + 1, numOfCards):
+                card1, card2, card3 = allCards[i], allCards[j], allCards[t]
+                if find_sets(card1, card2, card3):
+                    _,tempIMG = cap.read()
+                    cv2.drawContours(tempIMG, (card1.get_countres(), card2.get_countres(), card3.get_countres()), -1,
+                                     (0, 255, 0), 4)
                     cv2.imshow('frame', tempIMG)
-                    cv2.waitKey(2000)
+                    cv2.waitKey(400)
                     # cv2.line(img, card1.get_center(), card2.get_center(),colors[index], 2)
                     # cv2.line(img, card2.get_center(), card3.get_center(), colors[index], 2)
-                    index += 1
-                    index = index % len(colors)
-      break
-      cv2.imshow('frame', img)
-      if cv2.waitKey(1) & 0xFF == ord('q'):
-          break
-
-
+                    # index += 1
+                    # index = index % len(colors)
 def find_color(rgbAvg):
     min = float('inf')
     color = 0
@@ -149,7 +219,7 @@ def find_color(rgbAvg):
     if redDist < min or rgbAvg[2]>125:
         min = redDist
         color = 1
-    if purpleDist < min and rgbAvg[2]<150:#or rgbAvg[1]<110
+    if purpleDist < min and rgbAvg[2]<135:#or rgbAvg[1]<110
         min = purpleDist
         color = 2
 
@@ -306,6 +376,8 @@ def find_number_of_shapes(imgray,original,center = None,):
     return edges,shape,color,fill,contours
 
 # Press the green button in the gutter to run the script.
+def stam():
+    print(name)
 if __name__ == '__main__':
 
 

@@ -4,7 +4,24 @@
 # 3 number 1,2,3
 # 3 shapes - elipse,waves,Rhombus
 class Card:
+    Shapes = {
+        0: "oval",
+        1: "diamond",
+        2: "wave"
+    }
 
+    Colors = {
+        0: "green",
+        1: "red",
+        2: "purple"
+    }
+
+    Shades = {
+        0: "full",
+        1: "stripes",
+        2: "empty"
+
+    }
 
     def __init__(self,shape,shade,color,number,countres):
         self.shape =shape
@@ -37,3 +54,7 @@ class Card:
 
     def get_countres(self):
         return self.countres
+
+    def __str__(self):
+
+        return str(("Number: ",self.number," Shape: ",self.Shapes[self.shape]," Color: ",self.Colors[self.color]," Shade: ",self.Shades[self.shade]))
