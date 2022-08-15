@@ -2,7 +2,7 @@
 
 Set is a card game, for each crad there 4 parameters:
 1. shape type - oval/wave/diamond
-2. number of shapes - 1/2/3                                         ![](https://github.com/hananell123/set_game_solver/photos/set cards.png)
+2. number of shapes - 1/2/3                                         ![](https://github.com/hananell123/set_game_solver/photos/cards.png)
 
 3. shape color - Green/Red/Purple
 4. shpae shade - full,empty,stripes
