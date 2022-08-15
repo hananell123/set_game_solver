@@ -1,5 +1,4 @@
-import numpy as np
-import cv2
+
 """
    +------+
    |      | 0 - green  
@@ -18,6 +17,8 @@ import cv2
    |SHAPE | 1 - diamond
    |      | 2 - Squiggle
    +------+
+
+   finding all the sets by brute force searching
 """
 
 def find_sets(card1,card2,card3):

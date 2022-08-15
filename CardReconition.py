@@ -1,8 +1,14 @@
 import cv2
 import numpy as np
 
+
+"""
+this function help the algorithm 
+to see in a straight perspective
+regardless of the angle of the card
+"""
+
 def card_prespective(cnt,img):
-        fill = -1
         approx = cv2.approxPolyDP(cnt, 0.01 * cv2.arcLength(cnt, True), True)
         p1 = approx[0][0]
         p2 = approx[1][0]
@@ -28,6 +34,11 @@ green = np.array([99,144,50])
 red = np.array([8,24,194])
 purple = np.array([117,74,72])
 
+"""
+Determines the color of the card 
+by comparing it to the
+average of the color samples
+"""
 def get_color(rgbAvg):
     min = float('inf')
     color = 0
@@ -47,6 +58,13 @@ def get_color(rgbAvg):
 
 
     return color
+
+
+"""
+Determines the shade of the card 
+according to the proportional size of the shape
+in relation to the colored pixels in it
+"""
 
 def get_shade(thresh, img,countres):
     max_x, min_x = float('-inf'), float('inf')
@@ -85,14 +103,8 @@ def get_shade(thresh, img,countres):
     canny = cv2.Canny(gray, 5, 20)
 
 
-    # grey_3_channel = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
-    # canny2 = cv2.cvtColor(canny, cv2.COLOR_GRAY2BGR)
-    # gussianBlur = cv2.GaussianBlur(img,(5,5),0)
-    # numpy_vertical = np.hstack((img,gussianBlur,grey_3_channel,canny2))
-    # cv2.imshow("sad",numpy_vertical)
-    # cv2.waitKey()
+
     lines = cv2.HoughLinesP(canny, 2, np.pi / 180, 20, maxLineGap=4)
-    # 2 less then 17
     counter = 0
     for line in lines:
         x1, y1, x2, y2 = line[0]
@@ -103,6 +115,12 @@ def get_shade(thresh, img,countres):
     if counter > 17:
         return 1
     return 2
+
+"""
+Determines the number of shapes in card 
+according to the max largest contours
+"""
+
 
 def get_number(contours):
     edges = 0
@@ -118,13 +136,16 @@ waveSize,waveType = 87,2
 rhombusSize ,rhombusType= 118,3
 
 
+"""
+Determines the type of the shapes in the card 
+by comparing it to the
+average of the shapes size samples
+"""
 def get_shape(shapeSize):
     waveDist = np.abs(shapeSize - waveSize)
     elipseDist = np.abs(shapeSize - elipseSize)
     rhombusDist = np.abs(shapeSize - rhombusSize)
-
     minDist = min(waveDist, elipseDist, rhombusDist)
-
     if minDist == waveDist:
         return 2
     elif minDist == elipseDist:

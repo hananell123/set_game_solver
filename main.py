@@ -1,8 +1,6 @@
 import numpy as np
 import cv2
 import CardReconition as cr
-from numpy import random as rnd
-import playsound
 from card import Card
 from SetFinder import find_sets
 from threading import *
@@ -13,23 +11,11 @@ cap = []
 interupt = False
 
 
-def make_constrast(img):
-    kernel = np.ones((5,5), np.float32) / 24
-    img = cv2.filter2D(img, -1, kernel)
 
 
-    return img
 
-
-def get_card_center(width = 130,height = 130):
-    x = int((width * 2) / 4)
-    y = int((height * 2) / 4)
-    return (x, y)
-
-
-def start():
+def run_game():
   global interupt
-
   global cap
   cap = cv2.VideoCapture(0)
 
@@ -67,6 +53,8 @@ def start():
           allCards.append(newCard)
 
       numOfCards = len(allCards)
+
+      # check for interrupt during the game
       T = Thread(target=interrupt_check)
       T.start()
       alreadyFound = False
@@ -76,18 +64,20 @@ def start():
       after_iterrupt()
 
 
-
+"""
+after interrupt this function 
+check when the img is stable and the algorithm
+can search again
+"""
 def after_iterrupt():
     global cap
     global interupt
     videoSamples = [100,100,100,100]
     _, im = cap.read()
 
-
     im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
     time.sleep(0.5)
     while True:
-
 
         _, im2 = cap.read()
 
@@ -126,7 +116,7 @@ def after_iterrupt():
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
-
+# check if the img is not stable anymore
 def interrupt_check():
     global cap
     global originalImage
@@ -151,6 +141,8 @@ def interrupt_check():
         time.sleep(0.3)
 
 
+
+# display all the sets
 def display_set(numOfCards, allCards, cap, alreadyFound, allSets):
         if alreadyFound==False:
 
@@ -183,7 +175,7 @@ def display_set(numOfCards, allCards, cap, alreadyFound, allSets):
                 cv2.waitKey(700)
 
 
-
+# for given card find all the card parameters
 def get_card_parameters(imgray, original):
 
     thresh = cv2.threshold(imgray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
@@ -210,5 +202,5 @@ def get_card_parameters(imgray, original):
 
 
 if __name__ == '__main__':
-    start('PyCharm')
+    run_game('PyCharm')
 
