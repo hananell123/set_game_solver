@@ -1,5 +1,11 @@
 # SET GAME SOLVER
+### introduction
+I built this project because I wanted to learn and improve in image processing in a fun way and not just academically
+this is my first usage of openCV
 
+
+
+# Set game
 Set is a card game, for each crad there 4 parameters:
 1. shape type - oval/wave/diamond
 2. number of shapes - 1/2/3                                         
