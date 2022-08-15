@@ -3,18 +3,19 @@
 Set is a card game, for each crad there 4 parameters:
 1. shape type - oval/wave/diamond
 2. number of shapes - 1/2/3                                         
-3. 
- ![](https://github.com/hananell123/set_game_solver/photos/cards.png)
-
 3. shape color - Green/Red/Purple
 4. shpae shade - full,empty,stripes
+
+
+ ![](photos/cards.png)
+
 
 ### The conditions for Set
 ```bash
 "set" are 3 cards that each of the parameters mentioned above should be the 
 same in all the cards or different in all the cards in the trio
 ```
- ![](https://github.com/hananell123/set_game_solver/photos/sets.jpg)
+ ![](photos/sets.jpg)
 
 
 
@@ -34,7 +35,9 @@ The main image processing was done with 3 simple functions
 4. canny - A filter that emphasizes contours
 ```
 
-### image processing
+![](photos/filters.jpg)
+
+### set finding
 ```bash
 For finding the set I used brute force search because the number of options is not large - 12 choose 3 = 220.
 ```
