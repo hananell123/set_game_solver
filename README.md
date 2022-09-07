@@ -47,3 +47,8 @@ The main image processing was done with 3 simple functions
 ```bash
 For finding the set I used brute force search because the number of options is not large - 12 choose 3 = 220.
 ```
+
+![](https://github.com/hananell123/set_game_solver/photos/set solver finish hd (1) (1).mp4)
+
+
+
